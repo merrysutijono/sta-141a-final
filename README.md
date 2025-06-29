@@ -1,2 +1,2 @@
 # sta-141a-final
-A STA 141A: Fundamentals of Statistical Data Science Final Project
+Final project for STA 141A: Fundamentals of Statistical Data Science
