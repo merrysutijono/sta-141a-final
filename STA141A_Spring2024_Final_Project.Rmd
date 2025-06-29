@@ -1,0 +1,396 @@
+---
+title: "STA 141A - Spring 2024 - Final Project"
+date: 'Due date: Apr 10, 2024 at 07:59 PM (PT)'
+output:
+  html_document:
+    df_print: paged
+subtitle: 'Understanding Factors Influencing College Student Performance: 
+  Insights and Recommendations for Students Success Initiatives'
+---
+
+## 2.1 Correlation between prior academic Performance and college marks (Lola)
+
+```{r}
+# Data Import and Structure
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+filename <- "Student Attitude and Behavior.csv"
+file_path <- file.choose()
+if (basename(file_path) == filename) {
+  data <- read.csv(file_path, header = TRUE)
+} else {
+  cat("Selected file does not match expected filename.\n")
+}
+head(data)
+
+str(data)
+
+# Data Transform
+names(data) <- c('Certification_Course','Gender','Department','Height','Weight',
+                 'Mark_10','Mark_12','College_Mark', 'Hobbies', 'Daily_Study_Time', 
+                 'Study_Spot', 'Salary_Expectation', 'Degree_Opinion', 'Opinion_Future_Career', 
+                 'Social_Media_Engagement', 'Travel_Time', 'Stress_Level', 'Financial_Status', 
+                 'Job')
+
+```
+
+### 2.1.1 College Marks vs Prior Academic Performance (Lola)
+```{r}
+# Scatter Plots
+par(mfrow = c(1, 2))
+
+plot(data$Mark_10, data$College_Mark, 
+     main = "College Mark vs 10th Grade Mark", ylab = "College Mark",
+     xlab = "10th Grade Mark", pch = 19, font = 1, font.lab = 2,
+     cex = 0.75)
+plot(data$Mark_12, data$College_Mark, 
+     main = "College Mark vs 12th Grade Mark", ylab = "College Mark",
+     xlab = "12th Grade Mark", pch = 19, font = 1, font.lab = 2,
+     cex = 0.75)
+
+par(mfrow = c(1, 1))
+
+# Regression Models
+the.model_1.1 <- lm(College_Mark ~ Mark_10, data = data)
+the.model_1.2 <- lm(College_Mark ~ Mark_12, data = data)
+summary(the.model_1.1)
+summary(the.model_1.2)
+```
+
+
+## 2.2 Correlation between personal factors and college marks
+```{r}
+## exploratory data visualization
+par(mfrow = c(2, 2))
+## Do you like your degree?
+plot1 = ggplot(data, aes(x = factor(Degree_Opinion))) +
+  geom_bar(fill = "bisque", color = "black") +
+  labs(title = "Do you like your degree?",
+       x = "Do you like your degree?",
+       y = "Count")
+##  Willingness to pursue a career based on their degree
+plot2 = ggplot(data, aes(x = factor(Opinion_Future_Career))) +
+  geom_bar(fill = "deeppink", color = "black") +
+  labs(title = "Would You Pursue a Career Based on Your Degree?",
+       x = "Willingness",
+       y = "Count")+
+  theme(plot.title = element_text(size = 9.5))
+## Salary Expectations
+breaks <- seq(0, 150000, by = 10000)  # Adjust the range and width of bins as needed
+# Create the histogram
+plot3= ggplot(data, aes(x = Salary_Expectation)) +
+  geom_histogram(bins = length(breaks) - 1, fill = "cadetblue", color = "black", breaks = breaks) +
+  labs(title = "Histogram of Salary Expectation",
+       x = "Salary Expectation",
+       y = "Count")
+## Stress Level
+plot4 = ggplot(data, aes(x = factor(Stress_Level))) +
+  geom_bar(fill = "pink", color = "black") +
+  labs(title = "Stress Level",
+       x = "Stress Level",
+       y = "Count")
+
+#arrange plots       
+grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2)
+```
+
+### 2.2.1 College Marks vs Salary Expectation (Aidan)
+```{r}
+library(dplyr)
+library(car)
+
+#Check for missing values and omit NAs
+missing_values <- colSums(is.na(data))
+data_no_NA <- na.omit(data)
+
+#Check to make sure there are indeed no missing values
+missing_values_check <- colSums(is.na(data_no_NA))
+missing_values_check
+
+# Table 2.1
+College_Mark <- data$College_Mark
+Salary_Expectation <- data$Salary_Expectation
+data1 <- data.frame(
+  college_marks = College_Mark,
+  salary_expectation = Salary_Expectation
+)
+
+data1 <- data1 %>%
+  mutate(College_Marks_Category = cut(college_marks, 
+                              breaks = c(-Inf, 80, 90, Inf), 
+                              labels = c("Low", "Medium", "High")))
+
+Average_Salary <- data1 %>%
+  group_by(College_Marks_Category) %>%
+  summarise(Avg_Salary_Expectation = mean(salary_expectation))
+
+print(Average_Salary)
+
+library(knitr)
+kable(Average_Salary, caption = "Table 2.3.1: Average Salary Expectations by College Marks Category")
+
+# Plot 2.1
+library(ggplot2)
+
+ggplot(data = Average_Salary, aes(x = College_Marks_Category, y = Avg_Salary_Expectation, fill = College_Marks_Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = round(Avg_Salary_Expectation, 2)), position = position_stack(vjust = 0.5), color = "black", size = 3) +
+  labs(title = "Average Expected Salary by College Marks Category",
+       x = "College Marks Category",
+       y = "Average Expected Salary") +
+  scale_fill_manual(values = c("Low" = "red", "Medium" = "blue", "High" = "green")) +
+  theme(legend.position = "none")
+
+# Linear Regression Plot
+lm_model <- lm(salary_expectation ~ college_marks, data = data1)
+
+summary(lm_model)
+
+ggplot(data1, aes(x = college_marks, y = salary_expectation)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) + 
+  labs(x = "College Marks", y = "Salary Expectation") + 
+  ggtitle("Linear Regression: College Marks vs. Salary Expectation") +
+  theme_minimal() 
+
+```
+
+### 2.2.2 College Marks vs Willingness to pursue a career based on their degree
+```{r}
+College_Mark <- data$College_Mark
+Willingness <- data$Opinion_Future_Career
+willingness_numeric <- as.numeric(gsub("%", "", Willingness))
+data2 <- data.frame(
+  college_marks = College_Mark,
+  willingness = willingness_numeric
+)
+library(ggplot2)
+library(dplyr)
+
+model <- lm(willingness ~ college_marks, data = data2)
+summary(model)
+
+ggplot(data2, aes(x = college_marks, y = willingness)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "College Marks vs. Willingness to Pursue a Career Based on Their Degree",
+    x = "College Marks",
+    y = "Willingness (%)"
+  ) +
+  theme_minimal()
+
+plot(model)
+qqnorm(residuals(model))
+qqline(residuals(model))
+```
+
+### 2.2.3 College Marks v.s. Stress Level (Emma)
+```{r}
+# Table 2.2
+library(knitr)
+mark_by_stress = data %>% 
+                    group_by(Stress_Level) %>%
+                    summarize(AvgMark10 = mean(Mark_10),
+                             AvgMark12 = mean(Mark_12),
+                             AvgCollege_Mark = mean(College_Mark))
+kable(mark_by_stress, format = "markdown")
+mark_by_stress
+
+# Plot 2.2
+##VISUALIZATION
+# average 10th grade mark by stress level plot 
+plot_10 = ggplot(mark_by_stress) + 
+  geom_col(aes(x = Stress_Level , y = AvgMark10, fill = Stress_Level)) +
+  geom_text(aes(x = Stress_Level , y = AvgMark10, label = round(AvgMark10, 2)), vjust = 0.5, size = 3) +
+  scale_fill_manual(values=c("#99CCFF", 
+                             "#CCCFFF", 
+                             "#FF99CC", 
+                             "#FFCCFF")) +
+  theme_minimal() + 
+  labs(title = 'Average 10th Grade Mark by Stress Level',
+       x = "Stress Level",
+       y = "Average 10thth Grade Mark") +
+  theme(title = element_text(size =9),
+    axis.title = element_text(size = 8), 
+    axis.text.x = element_text(hjust = 1, size =5),
+    legend.position = "none")
+
+# average 12th grade mark by stress level plot 
+plot_12 = ggplot(mark_by_stress) + 
+  geom_col(aes(x = Stress_Level , y = AvgMark12, fill = Stress_Level)) +
+  scale_fill_manual(values=c("#99CCFF", 
+                             "#CCCFFF", 
+                             "#FF99CC", 
+                             "#FFCCFF")) +
+  geom_text(aes(x = Stress_Level , y = AvgMark12, label = round(AvgMark12, 2)), vjust = 0.5, size = 3) +
+  theme_minimal() + 
+  labs(title = 'Average 12th Grade Mark by Stress Level',
+       x = "Stress Level",
+       y = "Average 12th Grade Mark") +
+  theme(title = element_text(size =9),
+        axis.title = element_text(size = 8), 
+        axis.text.x = element_text(size = 5),
+        legend.position = "none")
+
+# average college mark by stress level plot 
+college_plot = ggplot(mark_by_stress) + 
+  geom_col(aes(x = Stress_Level , y = AvgCollege_Mark, fill = Stress_Level)) +
+  scale_fill_manual(values=c("#99CCFF", 
+                             "#CCCFFF", 
+                             "#FF99CC", 
+                             "#FFCCFF")) +
+  geom_text(aes(x = Stress_Level , y = AvgCollege_Mark, label = round(AvgCollege_Mark, 2)), vjust = 0.5, size = 3) +
+  theme_minimal() + 
+  labs(title = 'Average College Mark by Stress Level',
+       x = "Stress Level",
+       y = "Average College Mark") +
+  theme(title = element_text(size =9),
+        axis.title = element_text(size = 8), 
+        axis.text.x = element_text(size = 5),
+        legend.position = "none")
+
+# arrange the plots
+grid.arrange(plot_10, plot_12, college_plot, ncol = 2)
+
+# Logistic Regression 
+## To convert stress into binary variable: 
+data$Quantified_Stress = ifelse(data$Stress_Level %in% c("fabulous", "Good"), 0, 1)
+## logistic regression
+college_logreg = glm(Quantified_Stress ~College_Mark, data = data, family = binomial)
+## Summary of the logistic regression model
+summary(college_logreg)
+
+# Plot 2.3
+ggplot(data, aes(x=College_Mark, y=Quantified_Stress)) + geom_point() +
+      stat_smooth(method="glm", color="blue", se=FALSE, 
+                method.args = list(family=binomial))
+
+```
+
+### 2.2.4 Stress Levels v.s. Personal Factors (Emma)
+```{r}
+# Plot 2.4
+library(ggplot2)
+library(dplyr)
+# How does having a part time job affect stress levels?
+ggplot(data, aes(x = factor(Job), fill = factor(Stress_Level))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Stress Level by Part-time Job",
+       x = "Part-time Job?",
+       y = "Count") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+## How does financial status affect stress levels?
+ggplot(data, aes(x = factor(Financial_Status), fill = factor(Stress_Level))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Stress Level by Financial Status",
+       x = "Financial Status",
+       y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# How does travel time/commute to educational institutions affect stress levels?
+ggplot(data, aes(x = factor(Travel_Time), fill = factor(Stress_Level))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Stress Level by Travel Time to Educational Institution",
+       x = "Commute Time",
+       y = "Count") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Logistic Regression #2 
+## To quantify stress levels, convert into binary variable 
+data$Quantified_Stress = ifelse(data$Stress_Level %in% c("fabulous", "Good"), 0, 1)
+## logistic regression
+logreg = glm(Quantified_Stress ~ Job + Financial_Status + Travel_Time, data = data, family = binomial)
+# Summary of the logistic regression model
+summary(logreg)
+## Predict probabilities
+prob <- predict(logreg, type = "response")
+## Assign predicted quantified stress levels
+predicted <- ifelse(prob < 0.5, "Low Stress", "High Stress")
+
+## confusion matrix
+predicted = predict(logreg, data, type = 'response')
+predicted_class = ifelse(predicted>=0.5, 1, 0)
+confusion_matrix = table(actual = data$Quantified_Stress, predicted = predicted_class)
+confusion_matrix
+## calculate accuracy rate 
+accuracy = sum(diag(confusion_matrix))/sum(confusion_matrix)
+accuracy
+
+```
+
+## 2.3 Correlation between student’s engagement with society and college marks
+
+### 2.3.1 College Marks vs Hobbies (Merry)
+```{r}
+hobby_counts <- table(data$Hobbies)
+hobby_df <- as.data.frame(hobby_counts)
+
+# Bar Plot
+barplot(hobby_df$Freq, 
+        names.arg = hobby_df$Var1, 
+        main = "College Marks vs Hobbies", 
+        xlab = "Hobbies", 
+        ylab = "College Marks", 
+        col = "skyblue")
+
+unique(data$Hobbies)
+
+data <- data %>%
+  mutate(B = case_when(
+    Hobbies == 'Cinema' ~ 1,
+    Hobbies == 'Reading books' ~ 2,
+    Hobbies == 'Sports' ~ 3,
+    Hobbies == 'Video Games' ~ 4,
+    TRUE ~ NA_integer_
+  ))
+data$B <- as.numeric(data$B)
+
+# Scatter Plot
+plot(data$B,data$College_Mark,main = "College Mark vs Hobbies", 
+     ylab = "College Mark",xlab = "Hobbies")
+
+#Regression
+the.model <- lm(College_Mark ~ Hobbies, data = data)
+summary(the.model)
+```
+
+
+### 2.3.2 College Marks vs Engagement with Social Media (Lola)
+```{r}
+# Data Transform
+data <- data %>%
+  mutate(Social = case_when(
+    Social_Media_Engagement == '0 Minute' ~ '0',
+    Social_Media_Engagement == '1 - 30 Minute' ~ '15',
+    Social_Media_Engagement == '30 - 60 Minute' ~ '30',
+    Social_Media_Engagement == '1 - 1.30 hour' ~ '60',
+    Social_Media_Engagement == '1.30 - 2 hour' ~ '90',
+    Social_Media_Engagement == 'More than 2 hour' ~ '120'
+  )) %>%
+  select(-Social_Media_Engagement)
+data$Social <- as.numeric(data$Social)
+
+unique_values2 <- unique(data$Social)
+social_counts <- table(data$Social)
+social_time_df <- as.data.frame(social_counts)
+social_time_df$Var1 <- factor(social_time_df$Var1, levels = unique(social_time_df$Var1))
+
+# Scatter Plot
+plot(data$Social, data$College_Mark, 
+     main = "College Mark vs Entertainment Time", ylab = "College Mark", 
+     xlab = "Entertainment Time", pch = 19, font = 2, font.lab = 2, cex = 0.75)
+# Bar Plot
+barplot(social_time_df$Freq, 
+        names.arg = social_time_df$Var1, 
+        main = "Histogram of Entertainment Time", 
+        xlab = "Entertainment Time", 
+        ylab = "Frequency")
+# Regression
+the.model_2.1 <- lm(College_Mark ~ Social, data = data)
+summary(the.model_2.1)
+```
+
